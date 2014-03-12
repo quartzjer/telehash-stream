@@ -1,6 +1,6 @@
 exports.install = function(self)
 {
-  self.channelWraps["stream"] = function(chan)
+  self.wraps["stream"] = function(chan)
   {
     chan.duplex = new require("stream").Duplex();
 
