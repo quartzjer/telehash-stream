@@ -1,13 +1,13 @@
 {
-  "name": "telehash-telesocket",
+  "name": "telehash-stream",
   "version": "0.0.1",
-  "description": "Adding telesocket support to telehash-js",
+  "description": "Adding stream support to telehash-js",
   "main": "index.js",
   "dependencies": {
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/quartzjer/telesocket.git"
+    "url": "https://github.com/quartzjer/telehash-stream.git"
   },
   "keywords": [
     "telehash"
@@ -19,7 +19,7 @@
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/quartzjer/telesocket/issues"
+    "url": "https://github.com/quartzjer/telehash-stream/issues"
   },
-  "homepage": "https://github.com/quartzjer/telesocket"
+  "homepage": "https://github.com/quartzjer/telehash-stream"
 }

@@ -1,37 +1,5 @@
 exports.install = function(self)
 {
-  self.TSockets = {};
-  self.socket = function(uri, callback)
-  {
-    if(typeof uri != "string") return warn("invalid TS uri")&&false;
-    // detect connecting socket
-    if(uri.indexOf("ts://") == 0)
-    {
-      var parts = uri.substr(5).split("/");
-      var to = self.whois(parts.shift());
-      if(!to) return warn("invalid TS hashname")&&false;
-      return to.socket(parts.join("/"));
-    }
-    if(uri.indexOf("/") != 0) return warn("invalid TS listening uri")&&false;
-    debug("adding TS listener",uri)
-    self.TSockets[uri] = callback;
-  }
-	self.rels["ts"] = function(err, packet, chan, callback)
-  {
-    if(err) return;
-    var self = packet.from.self;
-    callback();
-
-    // ensure valid request
-    if(typeof packet.js.path != "string" || !self.TSockets[packet.js.path]) return chan.err("unknown path");
-  
-    // create the socket and hand back to app
-    chan.wrap("TS");
-    self.TSockets[packet.js.path](chan.socket);
-    chan.send({js:{open:true}});
-  }
-
-  
   self.channelWraps["stream"] = function(chan)
   {
     chan.duplex = new require("stream").Duplex();
