@@ -1,85 +1,78 @@
 exports.install = function(self)
 {
+  self.sock = function(req)
+  {
+    if(self.isHashname(req)) req = {to:req};
+    if(typeof req != "object") return console.log("invalid args")&&false;
+    var to = self.whois(req.to);
+    if(!to) return console.log("invalid to hashname",req.to)&&false;
+    delete req.to;
+    var chan = to.start("sock",{bare:true,js:req});
+    return chan.wrap("stream");
+  }
+  self.onSock = function(cbSock)
+  {
+    self.rels["sock"] = function(err, packet, chan, callback)
+    {
+      if(err) return;
+      callback();
+      cbSock(chan.wrap("stream"));
+    }
+  }
+
   self.wraps["stream"] = function(chan)
   {
-    chan.duplex = new require("stream").Duplex();
+    var pipe = new require("stream").Duplex();
 
-    // allow for manually injected json
-    duplex.bufJS = {};
-    duplex.js = function(js){
-      Object.keys(js).forEach(function(key){ duplex.bufJS[key] = js[key]; });
-      setTimeout(doChunk, 10);
-    };
-  
-    // buffer writes and chunk them out
-    duplex.bufBody = new Buffer(0);
-    duplex.cbWrite;
+    pipe.on("finish",function(){
+      chan.send({js:{end:true}});
+    });
 
-    function doChunk(){
-      debug("CHUNKING", duplex.bufJS, duplex.bufBody.length)
-      if(duplex.bufBody.length === 0 && Object.keys(duplex.bufJS).length === 0) return;      
-      var bodyout;
-      var jsout = duplex.bufJS;
-      duplex.bufJS = {};
-      if(duplex.bufBody.length > 0)
+    pipe.on("error",function(err){
+      chan.fail({js:{err:err}});
+    });
+
+    pipe._write = function(data,enc,cbWrite)
+    {
+      if(chan.ended) return cbWrite("closed");
+
+      // chunk it
+      while(data.length)
       {
-        var len = 1024 - JSON.stringify(jsout).length; // max body size for a packet
-        if(duplex.bufBody.length < len) len = duplex.bufBody.length;
-        bodyout = duplex.bufBody.slice(0, len);
-        duplex.bufBody = duplex.bufBody.slice(len);
-      }
-      // send it!
-      chan.send({js:jsout, body:bodyout, done:function(){
-        // we might be backed up, let more in
-        if(duplex.cbWrite)
+        var chunk = data.slice(0,1000);
+        data = data.slice(1000);
+        var packet = {js:{},body:chunk};
+        // last packet gets continuation callback
+        if(!data.length)
         {
-          // am I being paranoid that a cbWrite() could have set another duplex.cbWrite?
-          var cb = duplex.cbWrite;
-          delete duplex.cbWrite;
-          cb();
+          packet.callback = cbWrite;
+          if(pipe.ended) packet.js.end = true;
         }
-      }});
-      // recurse nicely
-      setTimeout(doChunk, 10);
-    
-    };
-
-    duplex.end = function(){
-      duplex.bufJS.end = true;
-      if(stream.errMsg) duplex.bufJS.err = stream.errMsg;
-      doChunk();
-    }
-
-    duplex._write = function(buf, enc, cbWrite){
-      duplex.bufBody = Buffer.concat([duplex.bufBody, buf]);
-
-      // if there's 50 packets waiting to be confirmed, hold up here, otherwise buffer up
-      var cbPacket = doChunk;
-      if(stream.outq.length > 50)
-      {
-        duplex.cbWrite = cbWrite;
-      }else{
-        cbWrite();
+        chan.send(packet);
       }
-    
-      // try sending a chunk;
-      doChunk();
-    }  
-  
-    duplex._read = function(size){
-      // TODO handle backpressure
-      // perform duplex.push(body)'s if any waiting, if not .push('')
-      // handle return value logic properly
+    }
+
+    // convenience to end with optional data
+    pipe.end = function(data)
+    {
+      pipe.ended = true;
+      if(!data) data = new Buffer(0);
+      pipe.write(data);
+    }
+
+    // handle backpressure flag from the pipe.push()
+    var more = false;
+    pipe._read = function(size){
+      if(more) more();
+      more = false;
     };
 
-    stream.handler = function(self, packet, cbHandler) {
-      // TODO migrate to _read backpressure stuff above
-      debug("HANDLER", packet.js)
-      if(cbExtra) cbExtra(packet);
-      if(packet.body) duplex.push(packet.body);
-      if(packet.js.end) duplex.push(null);
-      cbHandler();
+    chan.callback = function(err, packet, chan, cbMore) {
+      if(packet.body) if(!pipe.push(packet.body)) more = cbMore;
+      if(err) pipe.push(null);
+      if(!more) cbMore();
     }
-    return duplex;  
+
+    return pipe;
   }
 }

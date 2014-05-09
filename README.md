@@ -1,7 +1,7 @@
 telesocket
 ==========
 
-Adding [stream](http://nodejs.org/api/stream.html) support to [telehash-js](https://github.com/telehash/thjs) channels.
+Adding [stream](http://nodejs.org/api/stream.html) support to [telehash-js](https://github.com/telehash/thjs) channels, also implements the [sock](https://github.com/telehash/telehash.org/blob/master/ext/sock.md) extension.
 
 ## Usage
 
