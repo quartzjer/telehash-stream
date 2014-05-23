@@ -32,19 +32,9 @@ exports.install = function(self)
       chan.fail({js:{err:err}});
     });
 
-    var prebuf;
-    var prewrite;
     pipe._write = function(data,enc,cbWrite)
     {
       if(chan.ended) return cbWrite("closed");
-      // stash writes if not open yet and wait
-      if(!chan.opened)
-      {
-        prebuf = data;
-        prewrite = cbWrite;
-        return;
-      }
-
       // chunk it
       while(data.length)
       {
@@ -78,11 +68,6 @@ exports.install = function(self)
 
     chan.callback = function(err, packet, chan, cbMore) {
       // was a wait writing, let it through
-      if(chan.opened && prebuf)
-      {
-        pipe._write(prebuf,null,prewrite);
-        prebuf = prewrite = false;
-      }
       if(packet.body) if(!pipe.push(packet.body)) more = cbMore;
       if(err) pipe.push(null);
       if(!more) cbMore();

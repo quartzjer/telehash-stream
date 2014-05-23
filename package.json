@@ -1,6 +1,6 @@
 {
   "name": "telehash-stream",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Adding stream support to telehash-js",
   "main": "index.js",
   "dependencies": {
